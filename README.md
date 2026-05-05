@@ -93,9 +93,13 @@
 - 圖片上傳區（點擊上傳）  
 - 操作按鈕（開始辨識 / 拍照上傳）  
 - 卡片式介面設計  
-- 響應式設計（支援手機）  
-## 📊 成果展示（Demo）
+- 響應式設計（支援手機）
 
 ---
+## 📊 成果展示（Demo）
 
-![demo](./demo.png)
+<p align="center">
+  <img src="./image/demo1.png" width="30%"/>
+  <img src="./image/demo2.png" width="30%"/>
+  <img src="./image/demo3.png" width="30%"/>
+</p>
