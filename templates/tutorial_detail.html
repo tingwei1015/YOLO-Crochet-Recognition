@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>{{ title }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- 
+    顯示單一鉤織針法教學的詳細內容。
+    若有對應圖片，顯示圖片與標題；
+    若尚未建立內容，則顯示提示文字。
+  -->
+  <style>
+  html, body {
+    height: 100%;
+    background: transparent; /* 背景交由偽元素處理 */
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+    color: #333;
+    font-size: 18px;
+  }
+
+  /* ✅ 用偽元素鋪滿整個畫面當背景層 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(rgba(255,255,255,.8), rgba(255,255,255,.8)),
+      url("{{ url_for('static', filename='img/crochet-bg.jpg') }}")
+      center / cover no-repeat;
+  }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    a.link {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .img {
+      width: 100%;
+      max-width: 980px;
+      border-radius: 12px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .empty {
+      color: #777;
+      text-align: center;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 上：返回對應的辨識結果 -->
+  <div style="margin-bottom:8px; text-align:left;">
+    {% if rid %}
+      {# 從即時辨識來：回 /result/<result_id> #}
+      <a class="link" href="{{ url_for('result_page', result_id=rid) }}">← 返回辨識結果</a>
+    {% elif history_id %}
+      {# 從歷史紀錄來：回 /history/view/<id> #}
+      <a class="link" href="{{ url_for('view_history', rid=history_id|int) }}">← 返回辨識結果</a>
+    {% else %}
+      {# 萬一兩個都沒有，就退回上一頁 #}
+      <a class="link" href="javascript:history.back()">← 返回上一頁</a>
+    {% endif %}
+  </div>
+
+  <div class="top">
+    <div></div>
+    <h2 style="margin:0">{{ title }}</h2>
+    <div></div>
+  </div>
+
+  {% if image_url %}
+    <div class="card">
+      <img class="img" src="{{ image_url }}" alt="{{ title }}">
+    </div>
+  {% else %}
+    <p class="empty">很抱歉，此針法教學目前還未新增，敬請等待更新。</p>
+  {% endif %}
+
+  <div style="margin-top:12px; text-align:left;">
+    <a class="link" href="{{ url_for('tutorials') }}">← 返回清單</a>
+  </div>
+</body>
+</html>
+
+
+

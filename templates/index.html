@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <!-- RWD 響應式設計設定：讓頁面在手機、平板等裝置上能自適應寬度 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>鉤織圖辨識系統</title>
+  <style>
+  html, body {
+    height: 100%;
+    background: transparent; /* 背景交由偽元素處理 */
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+  }
+
+  /* ✅ 用偽元素鋪滿整個畫面當背景層 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(rgba(255,255,255,.86), rgba(255,255,255,.86)),
+      url("{{ url_for('static', filename='img/crochet-bg.jpg') }}")
+      center / cover no-repeat;
+  }
+
+  /* 📱 行動裝置相容調整 */
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    body::before {
+      position: absolute;
+      min-height: 100dvh;
+      height: 100%;
+      background:
+        linear-gradient(rgba(255,255,255,.90), rgba(255,255,255,.90)),
+        url("{{ url_for('static', filename='img/crochet-bg.jpg') }}")
+        center / cover no-repeat;
+    }
+  }
+
+  /* =========================
+     ✅ Craftaholic-like Header
+     ========================= */
+  :root{
+    --brand:#a17a69;
+    --brand-2:#967AA1;
+    --text:#2b2b2b;
+    --muted:#6b7280;
+    --card:#ffffff;
+    --border:#e5e7eb;
+    --shadow:0 10px 30px rgba(0,0,0,.08);
+  }
+
+  .site-header{
+    position: sticky;
+    top: 0;
+    z-index: 10000;
+    background: rgba(161,122,105,.92);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
+  }
+
+  .header-inner{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 12px 18px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 14px;
+    box-sizing: border-box;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    text-decoration:none;
+    color:#fff;
+    font-weight: 800;
+    letter-spacing: .5px;
+    white-space: nowrap;
+  }
+
+  .brand-badge{
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.18);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+  }
+
+  .brand-title{
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  /* Desktop nav */
+  .nav-desktop{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+  }
+
+  .nav-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .nav-item{
+    position: relative;
+    display: inline-flex;
+    align-items:center;
+  }
+
+  .nav-link{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    padding: 10px 10px;
+    border-radius: 10px;
+    text-decoration:none;
+    color:#fff;
+    font-size: 15px;
+    white-space: nowrap;
+    transition: background .18s ease, transform .18s ease;
+  }
+
+  .nav-link:hover{
+    background: rgba(255,255,255,.14);
+  }
+
+  .nav-sep{
+    width:1px;height:22px;
+    background: rgba(255,255,255,.22);
+    margin: 0 6px;
+  }
+
+  .nav-user{
+    display:inline-flex;
+    align-items:center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.10);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+    color: #fff;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .nav-user strong{
+    font-weight: 800;
+  }
+  
+	/* ===== Desktop：讓中間導覽置中、右側使用者選單靠右 ===== */
+	.header-inner{
+	  display: grid;
+	  grid-template-columns: 1fr auto 1fr; /* 左：品牌 / 中：選單 / 右：使用者 */
+	  align-items: center;
+	  gap: 14px;
+	}
+	.brand{ justify-self: start; }
+	.nav-desktop{ justify-self: center; }
+	.user-area{ justify-self: end; }
+
+	/* 讓「使用說明 / 關於本系統」滑到會變手指（避免出現 I 游標） */
+	#guideBtn, #aboutBtn{ cursor: pointer; }
+
+	/* ===== Desktop：使用者下拉選單（點擊才顯示） ===== */
+	.user-menu{
+	  position: relative;
+	  display: inline-flex;
+	  align-items: center;
+	}
+
+	.user-trigger{
+	  display:inline-flex;
+	  align-items:center;
+	  gap: 8px;
+	  padding: 8px 10px;
+	  border-radius: 12px;
+	  background: rgba(255,255,255,.10);
+	  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+	  color: #fff;
+	  font-size: 14px;
+	  white-space: nowrap;
+	  border: none;
+	  cursor: pointer;
+	}
+	.user-trigger:active{ transform: scale(.99); }
+
+	.user-trigger strong{ font-weight: 800; }
+
+	.user-dropdown{
+	  position: absolute;
+	  right: 0;
+	  top: calc(100% + 10px);
+	  min-width: 220px;
+	  background: #fff;
+	  border: 1px solid var(--border);
+	  border-radius: 14px;
+	  box-shadow: 0 18px 40px rgba(0,0,0,.16);
+	  padding: 8px 0;
+	  z-index: 99999;
+
+	  visibility: hidden;
+	  opacity: 0;
+	  transform: translateY(8px);
+	  transition: opacity .18s ease, transform .18s ease, visibility .18s;
+	  pointer-events: none;
+	}
+
+	/* 打開狀態 */
+	.user-menu.open .user-dropdown{
+	  visibility: visible;
+	  opacity: 1;
+	  transform: translateY(0);
+	  pointer-events: auto;
+	}
+
+	.user-dropdown a{
+	  display:block;
+	  padding: 10px 14px;
+	  font-size: 14px;
+	  color:#2b2b2b;
+	  text-decoration:none;
+	  white-space: nowrap;
+	}
+	.user-dropdown a:hover{ background:#f3f4f6; }
+
+	.user-dropdown .ud-title{
+	  padding: 10px 14px 8px;
+	  font-weight: 800;
+	  color: #111827;
+	  font-size: 13px;
+	  letter-spacing: .2px;
+	}
+	.user-dropdown hr{
+	  margin: 8px 0;
+	  border: none;
+	  border-top: 1px solid #eee;
+	}
+
+
+	/* Dropdown panel (Desktop) */
+	.has-dropdown{
+	  position: relative;
+	  overflow: visible;
+	}
+
+	.has-dropdown .dropdown-panel{
+	  position: absolute;
+
+	  /* ✅ 關鍵：直接貼齊，完全沒有縫 */
+	  top: 100%;
+	  left: 0;
+
+	  min-width: 260px;
+	  max-height: 420px;
+	  overflow: auto;
+	  background: #fff;
+	  border: 1px solid var(--border);
+	  border-radius: 14px;
+	  box-shadow: 0 18px 40px rgba(0,0,0,.16);
+	  padding: 8px 0;
+	  z-index: 99999;
+
+	  visibility: hidden;
+	  opacity: 0;
+	  transform: none;              /* ✅ 不再位移 */
+	  transition: opacity .15s ease;
+	  pointer-events: none;
+	}
+
+	/* 保留 hover / focus 行為 */
+	.has-dropdown:hover .dropdown-panel,
+	.has-dropdown:focus-within .dropdown-panel{
+	  visibility: visible;
+	  opacity: 1;
+	  pointer-events: auto;
+	}
+
+
+  .dropdown-panel a{
+    display:block;
+    padding: 10px 14px;
+    font-size: 14px;
+    color:#2b2b2b;
+    text-decoration:none;
+    white-space: nowrap;
+  }
+
+  .dropdown-panel a:hover{
+    background:#f3f4f6;
+  }
+
+  .dropdown-panel .dd-title{
+    padding: 10px 14px 8px;
+    font-weight: 800;
+    color: #111827;
+    font-size: 13px;
+    letter-spacing: .2px;
+  }
+
+  .dropdown-panel hr{
+    margin: 8px 0;
+    border: none;
+    border-top: 1px solid #eee;
+  }
+
+  /* ✅ 避免上層容器把下拉裁掉 */
+  .site-header,
+  .header-inner,
+  .nav-desktop,
+  .nav-list{
+    overflow: visible !important;
+  }
+
+
+	/* Hamburger (Mobile) */
+	.hamburger{
+	  display:none;
+	  border:none;
+	  background: transparent;
+	  color:#fff;
+
+	  /* ✅ 只留「三條線大小」的點擊區，不要超長膠囊 */
+	  padding: 6px 8px;
+	  border-radius: 8px;
+	  cursor: pointer;
+
+	  width: auto;
+	  min-width: 0;
+
+	  box-shadow: none;
+	  line-height: 1;
+	  font-size: 22px;
+	}
+	.hamburger:active{ transform: scale(.98); }
+
+
+  /* Mobile Drawer */
+  .mobile-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.40);
+    z-index: 99990;
+    display: none;
+  }
+
+  .mobile-drawer{
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: min(86vw, 360px);
+    background: #fff;
+    z-index: 99999;
+    transform: translateX(110%);
+    transition: transform .22s ease;
+    box-shadow: -18px 0 40px rgba(0,0,0,.18);
+    display:flex;
+    flex-direction:column;
+  }
+
+  .mobile-drawer.open{ transform: translateX(0); }
+  .mobile-overlay.show{ display:block; }
+
+  .drawer-header{
+    padding: 14px 14px;
+    border-bottom: 1px solid #eee;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .drawer-title{
+    font-weight: 900;
+    color:#111827;
+    font-size: 16px;
+  }
+
+  .drawer-close{
+    border:none;
+    background:#f3f4f6;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor:pointer;
+  }
+
+  .drawer-body{
+    padding: 12px 10px 18px;
+    overflow:auto;
+  }
+
+  .drawer-user{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #faf7f6;
+    border: 1px solid #f0e6e2;
+    margin: 0 4px 10px;
+  }
+
+  .drawer-user .dot{
+    width: 10px; height: 10px; border-radius: 99px;
+    background: var(--brand);
+  }
+
+  .drawer-user .u{
+    font-size: 14px;
+    color:#111827;
+    font-weight: 800;
+  }
+
+  .drawer-link{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 12px;
+    margin: 4px;
+    border-radius: 14px;
+    text-decoration:none;
+    color:#111827;
+    background: #fff;
+    border: 1px solid #f3f4f6;
+  }
+
+  .drawer-link:hover{ background:#f9fafb; }
+
+  .drawer-btn{
+    width: calc(100% - 8px);
+    margin: 4px;
+    border-radius: 14px;
+    padding: 12px 12px;
+    border: 1px solid #f3f4f6;
+    background:#fff;
+    cursor:pointer;
+    text-align:left;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    color:#111827;
+    font-size: 15px;
+  }
+  .drawer-btn:hover{ background:#f9fafb; }
+
+  .drawer-sub{
+    margin: 0 4px 8px;
+    border-radius: 14px;
+    border: 1px solid #f3f4f6;
+    overflow: hidden;
+    background:#fff;
+
+    max-height: 0;
+    transition: max-height .22s ease;
+  }
+
+  .drawer-sub.open{
+    max-height: 520px;
+  }
+
+  .drawer-sub a{
+    display:block;
+    padding: 10px 12px;
+    font-size: 14px;
+    text-decoration:none;
+    color:#1f2937;
+    border-top: 1px solid #f3f4f6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .drawer-sub a:first-child{ border-top:none; }
+  .drawer-sub a:hover{ background:#f3f4f6; }
+
+	/* ✅ Mobile：只留三條線，並固定靠最右；使用者隱藏 */
+	@media (max-width: 980px){
+
+	  /* 1) 縮小螢幕時：桌機導覽維持隱藏 */
+	  .nav-desktop{ display:none; }
+
+	  /* 2) Header 仍然是 flex，讓右側可以推到最右 */
+	  .header-inner{
+		display:flex;
+		align-items:center;
+		width:100%;
+	  }
+
+	  /* 3) ✅ 隱藏「使用者」那顆（你不知道 class 沒關係，我多列幾個常見寫法一起蓋） */
+	  .nav-user,
+	  .nav-user-btn,
+	  .user-btn,
+	  .user-pill,
+	  #userBtn,
+	  #userMenuBtn{
+		display:none !important;
+	  }
+
+	  /* 4) ✅ 只留三條線，並推到最右邊 */
+	  .hamburger{
+		display:inline-flex !important;
+		margin-left:auto !important;
+
+		/* 只保留三條線大小（不要長膠囊） */
+		width:auto !important;
+		min-width:0 !important;
+		padding:6px 8px !important;
+		border-radius:8px !important;
+
+		background:transparent !important;
+		box-shadow:none !important;
+		line-height:1 !important;
+		font-size:22px !important;
+	  }
+	}
+
+
+  /* =========================
+     ✅ Page Layout (Hero + Content)
+     ========================= */
+  .page{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 22px 18px 40px;
+    box-sizing: border-box;
+  }
+
+  .hero{
+    display:grid;
+    grid-template-columns: 1.25fr .9fr;
+    gap: 18px;
+    align-items: stretch;
+    margin-top: 14px;
+  }
+
+  .hero-card{
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 22px;
+    padding: 26px;
+    box-shadow: var(--shadow);
+  }
+
+  .hero h1{
+    margin: 0 0 10px;
+    font-size: 44px;
+    line-height: 1.05;
+    color: #2b2b2b;
+    letter-spacing: .3px;
+  }
+
+  .hero p{
+    margin: 0;
+    color: #374151;
+    line-height: 1.7;
+    font-size: 16px;
+  }
+
+  .hero-actions{
+    margin-top: 18px;
+    display:flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .cta{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 999px;
+    text-decoration:none;
+    font-weight: 800;
+    font-size: 15px;
+    border: 1px solid rgba(0,0,0,.06);
+    cursor:pointer;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+
+  .cta.primary{
+    background: rgba(161,122,105,.95);
+    color:#fff;
+    box-shadow: 0 10px 22px rgba(161,122,105,.22);
+    border-color: rgba(161,122,105,.18);
+  }
+  .cta.primary:hover{ background: rgba(161,122,105,1); }
+
+  .cta.ghost{
+    background: #fff;
+    color: #2b2b2b;
+  }
+  .cta.ghost:hover{ background:#f9fafb; }
+
+  .hero-side{
+    display:grid;
+    gap: 14px;
+  }
+
+  .tip-card{
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 22px;
+    padding: 18px 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .tip-card h3{
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: #111827;
+  }
+
+  .tip-card ul{
+    margin: 0;
+    padding-left: 18px;
+    color: #374151;
+    line-height: 1.8;
+    font-size: 14px;
+  }
+
+  @media (max-width: 980px){
+    .hero{
+      grid-template-columns: 1fr;
+    }
+    .hero h1{
+      font-size: 34px;
+    }
+  }
+
+  /* =========================
+     ✅ Upload card (Keep functionality)
+     ========================= */
+  .section-card{
+    margin-top: 18px;
+    background: rgba(255,255,255,.92);
+    border: 1px solid rgba(255,255,255,.7);
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-title{
+    text-align:center;
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 900;
+    color: #111827;
+  }
+
+  .section-sub{
+    text-align:center;
+    margin: 0 0 14px;
+    color:#6b7280;
+    font-size: 14px;
+  }
+
+  /* === 上傳區樣式（保留原功能，但視覺調整） === */
+  .upload-box {
+    text-align: center;             /* 內容置中 */
+    padding: 18px;                  /* 內距 */
+    border: 1.6px dashed rgba(161,122,105,.45);        /* 虛線邊框 */
+    border-radius: 16px;            /* 圓角邊框 */
+    background: rgba(255,255,255,.65);               /* 背景 */
+  }
+
+  .upload-box input[type=file] {
+    margin: 10px 0;                 /* 上下留白 */
+  }
+
+  .upload-box button {
+    margin-top: 1px;                /* 與上方間距 */
+    padding: 12px 20px;             /* 按鈕內距 */
+    font-size: 1.05em;              /* 字體稍大 */
+    border: none;                   /* 移除邊框 */
+    border-radius: 999px;           /* 圓角按鈕 */
+    background: #967AA1;            /* 主色：紫灰色 */
+    color: #fff;                    /* 文字白色 */
+    cursor: pointer;                /* 滑鼠變為可點擊手型 */
+    box-shadow: 0 10px 18px rgba(150,122,161,.18);
+    transition: transform .15s ease, background .2s ease;
+  }
+
+  .upload-box button:hover { background: #AAA1C8; }
+  .upload-box button:active{ transform: scale(.98); }
+
+  .upload-box .camera-btn {
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: middle;
+    padding: 12px 20px;
+    font-size: 1.05em;
+    border: none;
+    border-radius: 999px;
+    background: #967AA1;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 10px 18px rgba(150,122,161,.18);
+    transition: transform .15s ease, background .2s ease;
+  }
+  .upload-box .camera-btn:hover { background: #AAA1C8; }
+  .upload-box .camera-btn:active{ transform: scale(.98); }
+
+  /* === 按鈕列區塊（上傳與拍照） === */
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* === 勾選輸出選項區 === */
+  .checkbox-area {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 16px;
+    color: #333;
+  }
+  .checkbox-area input[type=checkbox] {
+    accent-color: #ff6600;
+    transform: scale(1.25);
+    margin-right: 6px;
+  }
+  .checkbox-area label {
+    margin: 0 12px;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  /* === 上傳進度條 === */
+  .progress-container {
+    width: min(780px, 92%);
+    margin: 14px auto 0;
+    height: 18px;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    background: #eee;
+    display: none;
+    overflow:hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #D5C6E0;
+    border-radius: 999px;
+    transition: width .2s;
+  }
+  .progress-text {
+    text-align: center;
+    font-size: 15px;
+    margin-top: 10px;
+    display: none;
+    color:#374151;
+  }
+
+  /* =========================
+     ✅ Modals (keep)
+     ========================= */
+  /* 通用彈窗 */
+  .modal-mask {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .modal-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px;
+    width: 85%;
+    max-width: 650px;
+    box-shadow: 0 4px 15px rgba(0,0,0,.25);
+    text-align: left;
+  }
+
+  /* 手機版：讓 使用說明 / 關於本系統 的彈窗內容可以上下捲動 */
+  @media (max-width: 640px){
+    #guideModal .modal-card,
+    #aboutModal .modal-card{
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+  }
+
+  .modal-card h2 {
+    text-align: center;
+    color: #333;
+    margin-top: 0;
+  }
+
+  .modal-actions {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .modal-close {
+    padding: 8px 18px;
+    background: #967AA1;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  /* === 相機共用區樣式 === */
+  .camera-wrap {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #cameraVideo, #cameraCanvas {
+    width: 100%;
+    height: auto;
+    background: #000;
+  }
+
+  .camera-controls {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .camera-controls button {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .camera-controls .danger {
+    background: #ef4444;
+    color: #fff;
+  }
+
+  .camera-controls .primary {
+    background: #967AA1;
+    color: #fff;
+  }
+
+  /* === 📱 手機滿版相機畫面設定 === */
+  @media (max-width:899px){
+    #cameraModal { background:#fff; }
+
+    #cameraModal .modal-card {
+      width:100vw; height:100vh;
+      max-width:none; max-height:none;
+      border-radius:0; padding:0;
+      box-shadow:none;
+      display:flex; flex-direction:column;
+    }
+
+    #cameraModal .modal-card h2 {
+      font-size:26px; margin:12px 0; color:#333;
+    }
+
+    #cameraModal .camera-wrap {
+      flex:1; min-height:0; display:flex; flex-direction:column;
+    }
+
+    .cam-frame {
+      flex:1; min-height:60vh; position:relative; width:100%;
+      overflow:hidden; background:#000;
+    }
+
+    #cameraVideo, #cameraCanvas {
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover;
+    }
+
+    .camera-controls {
+      justify-content:center; gap:20px; padding:14px 0;
+      background:#fff; border-top:1px solid #ddd;
+      box-shadow:0 -2px 8px rgba(0,0,0,.08);
+    }
+
+    .camera-controls button {
+      font-size:20px; padding:14px 28px; border-radius:14px;
+    }
+  }
+
+  /* === 🖥桌機滿版相機畫面設定 === */
+  @media (min-width:900px){
+    #cameraModal { padding:0; background:#000; }
+    #cameraModal .modal-card {
+      width:100vw; height:100vh;
+      max-width:none; max-height:none;
+      border-radius:0; padding:0;
+      background:#000;
+      display:flex; flex-direction:column;
+      box-shadow:none;
+    }
+
+    #cameraModal .modal-card h2 {
+      color:#fff; font-weight:700; font-size:24px;
+      text-align:center; padding:16px 0 0;
+    }
+
+    #cameraModal .camera-wrap {
+      position:relative; flex:1; width:100%; height:100%;
+      overflow:hidden; background:#000; padding:0 0 90px;
+    }
+
+    #cameraVideo, #cameraCanvas {
+      position:absolute; inset:0; width:100%; height:100%;
+      max-width:none; border-radius:0; object-fit:cover;
+      background:#000;
+    }
+
+    #cameraModal .camera-controls {
+      position:absolute; left:50%; bottom:28px;
+      transform:translateX(-50%);
+      margin:0; padding:10px 14px;
+      border-radius:999px;
+      background:rgba(0,0,0,.35);
+      backdrop-filter:blur(6px);
+      z-index:2;
+    }
+  }
+
+  /* Prevent scroll when menus open */
+  body.menu-open{
+    overflow: hidden;
+  }
+  
+	/* ✅ 使用說明 / 關於本系統：滑過也要是手指 */
+	#guideBtn,
+	#aboutBtn {
+	  cursor: pointer !important;
+	}
+
+  
+	#guideBtn *,
+	#aboutBtn * {
+	  cursor: pointer !important;
+	}
+
+	/* ===== Avatar 共用 ===== */
+	.avatar{
+	  width: 32px;
+	  height: 32px;
+	  border-radius: 50%;
+	  object-fit: cover;
+	  background: #e5e7eb;
+	}
+
+	/* Header 使用者按鈕 */
+	.user-trigger{
+	  display: inline-flex;
+	  align-items: center;
+	  gap: 8px;
+	  cursor: pointer;
+	}
+
+	.user-trigger .username{
+	  font-weight: 700;
+	}
+
+	.user-trigger .caret{
+	  font-size: 12px;
+	  opacity: .9;
+	}
+
+	/* Drawer 使用者區 */
+	.drawer-user-info{
+	  display: flex;
+	  align-items: center;
+	  gap: 12px;
+	}
+
+	.avatar-lg{
+	  width: 44px;
+	  height: 44px;
+	}
+
+
+  </style>
+</head>
+<body>
+
+  <!-- ✅ Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{{ url_for('index') }}">
+        <span class="brand-title">鉤織圖辨識系統</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="nav-desktop" aria-label="主選單">
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('history_page') }}">📜 查看我的結果</a>
+          </li>
+
+          <li class="nav-item has-dropdown">
+            <a class="nav-link" href="{{ url_for('tutorials') }}">🧵 針法教學 ▾</a>
+            <div class="dropdown-panel" role="menu" aria-label="針法教學清單">
+              <div class="dd-title">針法教學（26 種）</div>
+              <a href="{{ url_for('tutorial_detail', key='2ch_2dc_cluster') }}">2 起立針 2 長針棗形針(2ch_2dc_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='2ch_2hdc_cluster') }}">2 起立針 2 中長針棗形針(2ch_2hdc_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='2dc_shell') }}">2 長針貝殼針(2dc_shell)</a>
+              <a href="{{ url_for('tutorial_detail', key='3ch_4dc_cluster') }}">3 起立針 4 長針棗形針(3ch_4dc_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='3dc_cluster') }}">長針三針棗形針(3dc_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='3hdc_cluster') }}">中長針三針棗形針 / puff(3hdc_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='4hdc_cluster') }}">中長針四針棗形針(4hdc_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='4tr_shell') }}">4 長長針貝殼針(4tr_shell)</a>
+              <a href="{{ url_for('tutorial_detail', key='5dc_cluster') }}">長針五針棗形針(5dc_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='5dc_popcorn') }}">長針爆米花針(5dc_popcorn)</a>
+              <a href="{{ url_for('tutorial_detail', key='6dc_shell') }}">6 長針貝殼針(6dc_shell)</a>
+              <a href="{{ url_for('tutorial_detail', key='6tr_cluster') }}">長長針六針棗形針(6tr_cluster)</a>
+              <a href="{{ url_for('tutorial_detail', key='7dc_shell') }}">7 長針貝殼針(7dc_shell)</a>
+              <a href="{{ url_for('tutorial_detail', key='BPdc') }}">內鉤長針(BPdc)</a>
+              <a href="{{ url_for('tutorial_detail', key='FPdc') }}">外鉤長針(FPdc)</a>
+              <a href="{{ url_for('tutorial_detail', key='FPtr') }}">外鉤長長針(FPtr)</a>
+              <a href="{{ url_for('tutorial_detail', key='ch') }}">鎖針(ch)</a>
+              <a href="{{ url_for('tutorial_detail', key='dc') }}">長針(dc)</a>
+              <a href="{{ url_for('tutorial_detail', key='dc2tog') }}">長針併針(dc2tog)</a>
+              <a href="{{ url_for('tutorial_detail', key='dtr') }}">三卷長針(dtr)</a>
+              <a href="{{ url_for('tutorial_detail', key='hdc') }}">中長針(hdc)</a>
+              <a href="{{ url_for('tutorial_detail', key='hdc2tog') }}">中長針併針(hdc2tog)</a>
+              <a href="{{ url_for('tutorial_detail', key='sc') }}">短針(sc)</a>
+              <a href="{{ url_for('tutorial_detail', key='sl_st') }}">引拔針(sl_st)</a>
+              <a href="{{ url_for('tutorial_detail', key='st2tog') }}">併針(st2tog)</a>
+              <a href="{{ url_for('tutorial_detail', key='tr') }}">長長針(tr)</a>
+              <hr>
+              <a href="{{ url_for('tutorials') }}" style="font-weight:800;">顯示全部教學清單 →</a>
+            </div>
+          </li>
+
+          <li class="nav-item">
+            <a id="guideBtn" class="nav-link" role="button">📘 使用說明</a>
+          </li>
+          <li class="nav-item">
+            <a id="aboutBtn" class="nav-link" role="button">ℹ️ 關於本系統</a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- ✅ Desktop：使用者點擊才跳出選單（把原本那串右上功能收進來） -->
+      <div class="user-area user-menu" id="userMenu">
+		<button class="user-trigger" id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false">
+		  <img class="avatar" src="{{ avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="avatar">
+		  使用者：<strong class="username">{{ username }}</strong> <span class="caret">▾</span>
+		</button>
+
+
+
+        <div class="user-dropdown" id="userDropdown" role="menu" aria-label="使用者選單">
+          <a href="{{ url_for('feed') }}">貼文牆</a>
+          <a href="{{ url_for('my_likes') }}">我按過的讚</a>
+          <a href="{{ url_for('profile') }}">個人介面</a>
+          <hr>
+          <a href="{{ url_for('logout') }}">登出</a>
+        </div>
+      </div>
+
+      <!-- Mobile Hamburger -->
+      <button class="hamburger" id="menuBtn" aria-label="開啟選單" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <!-- Mobile overlay + drawer -->
+  <div class="mobile-overlay" id="menuOverlay"></div>
+
+  <aside class="mobile-drawer" id="mobileMenu" aria-hidden="true">
+    <div class="drawer-header">
+      <div class="drawer-title">選單</div>
+      <button class="drawer-close" id="closeMenu" aria-label="關閉選單">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <div class="drawer-user">
+        <span class="dot"></span>
+		<div class="drawer-user-info">
+		  <img class="avatar avatar-lg" src="{{ avatar_url or url_for('static', filename='img/default-avatar.png') }}" alt="avatar">
+		  <div>
+			<div class="u">使用者：{{ username }}</div>
+		  </div>
+		</div>
+
+
+      </div>
+
+      <a class="drawer-link" href="{{ url_for('history_page') }}">📜 查看我的結果 <span>›</span></a>
+
+      <button class="drawer-btn" id="drawerTutorialBtn" type="button">
+        🧵 針法教學（26 種）
+        <span id="drawerTutorialArrow">▾</span>
+      </button>
+      <div class="drawer-sub" id="drawerTutorialList">
+        <a href="{{ url_for('tutorial_detail', key='2ch_2dc_cluster') }}">2 起立針 2 長針棗形針(2ch_2dc_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='2ch_2hdc_cluster') }}">2 起立針 2 中長針棗形針(2ch_2hdc_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='2dc_shell') }}">2 長針貝殼針(2dc_shell)</a>
+        <a href="{{ url_for('tutorial_detail', key='3ch_4dc_cluster') }}">3 起立針 4 長針棗形針(3ch_4dc_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='3dc_cluster') }}">長針三針棗形針(3dc_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='3hdc_cluster') }}">中長針三針棗形針 / puff(3hdc_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='4hdc_cluster') }}">中長針四針棗形針(4hdc_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='4tr_shell') }}">4 長長針貝殼針(4tr_shell)</a>
+        <a href="{{ url_for('tutorial_detail', key='5dc_cluster') }}">長針五針棗形針(5dc_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='5dc_popcorn') }}">長針爆米花針(5dc_popcorn)</a>
+        <a href="{{ url_for('tutorial_detail', key='6dc_shell') }}">6 長針貝殼針(6dc_shell)</a>
+        <a href="{{ url_for('tutorial_detail', key='6tr_cluster') }}">長長針六針棗形針(6tr_cluster)</a>
+        <a href="{{ url_for('tutorial_detail', key='7dc_shell') }}">7 長針貝殼針(7dc_shell)</a>
+        <a href="{{ url_for('tutorial_detail', key='BPdc') }}">內鉤長針(BPdc)</a>
+        <a href="{{ url_for('tutorial_detail', key='FPdc') }}">外鉤長針(FPdc)</a>
+        <a href="{{ url_for('tutorial_detail', key='FPtr') }}">外鉤長長針(FPtr)</a>
+        <a href="{{ url_for('tutorial_detail', key='ch') }}">鎖針(ch)</a>
+        <a href="{{ url_for('tutorial_detail', key='dc') }}">長針(dc)</a>
+        <a href="{{ url_for('tutorial_detail', key='dc2tog') }}">長針併針(dc2tog)</a>
+        <a href="{{ url_for('tutorial_detail', key='dtr') }}">三卷長針(dtr)</a>
+        <a href="{{ url_for('tutorial_detail', key='hdc') }}">中長針(hdc)</a>
+        <a href="{{ url_for('tutorial_detail', key='hdc2tog') }}">中長針併針(hdc2tog)</a>
+        <a href="{{ url_for('tutorial_detail', key='sc') }}">短針(sc)</a>
+        <a href="{{ url_for('tutorial_detail', key='sl_st') }}">引拔針(sl_st)</a>
+        <a href="{{ url_for('tutorial_detail', key='st2tog') }}">併針(st2tog)</a>
+        <a href="{{ url_for('tutorial_detail', key='tr') }}">長長針(tr)</a>
+        <a href="{{ url_for('tutorials') }}" style="font-weight:800;">顯示全部教學清單 →</a>
+      </div>
+
+      <button class="drawer-btn" id="guideBtnM" type="button">📘 使用說明 <span>›</span></button>
+      <button class="drawer-btn" id="aboutBtnM" type="button">ℹ️ 關於本系統 <span>›</span></button>
+
+      <a class="drawer-link" href="{{ url_for('feed') }}">貼文牆 <span>›</span></a>
+      <a class="drawer-link" href="{{ url_for('my_likes') }}">我按過的讚 <span>›</span></a>
+      <a class="drawer-link" href="{{ url_for('profile') }}">個人介面 <span>›</span></a>
+      <a class="drawer-link" href="{{ url_for('logout') }}">登出 <span>›</span></a>
+    </div>
+  </aside>
+
+  <!-- ✅ Main -->
+  <main class="page">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-card">
+        <h1>上傳鉤織圖<br>快速辨識針法</h1>
+        <p>
+          上傳一張清晰的鉤織圖，系統會自動辨識針法符號並統計數量，
+          同時可選擇輸出原圖與圈選結果，並支援儲存到「我的結果」方便回顧。
+        </p>
+
+        <div class="hero-actions">
+          <a class="cta primary" href="#start">🚀 開始辨識</a>
+          <a class="cta ghost" href="{{ url_for('tutorials') }}">🧵 看全部針法教學</a>
+          <a class="cta ghost" href="{{ url_for('history_page') }}">📜 回顧我的結果</a>
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <div class="tip-card">
+          <h3>使用小提醒</h3>
+          <ul>
+            <li>光線充足、避免陰影與模糊，辨識更穩定。</li>
+            <li>符號太小或手繪不清，準確率可能下降。</li>
+            <li>可勾選「輸出原圖 / 輸出圈圖結果」做對照。</li>
+          </ul>
+        </div>
+
+        <div class="tip-card">
+          <h3>推薦工具</h3>
+          <ul>
+            <li>針法教學：從上方「🧵 針法教學」下拉瀏覽 26 種。</li>
+            <li>貼文牆：分享作品、按讚、留言、追蹤。</li>
+            <li>個人介面：更新個人資訊與紀錄。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Upload -->
+    <section class="section-card" id="start">
+      <div class="section-title">開始辨識</div>
+      <div class="section-sub">請上傳一張鉤織圖（建議：對焦清楚、背景簡單、光線均勻）</div>
+
+      <div class="upload-box">
+        <form id="uploadForm" action="/predict" method="post" enctype="multipart/form-data">
+          <input type="file" id="fileInput" name="file" accept="image/*" required>
+          <input type="file" id="captureInput" accept="image/*" capture="environment" style="display:none;">
+          <br>
+          <div class="btn-row">
+            <button type="submit">上傳並辨識</button>
+            <button id="cameraBtn" class="camera-btn" type="button">直接拍照上傳</button>
+          </div>
+          <div class="checkbox-area">
+            <label><input type="checkbox" name="output_original"> 輸出原圖</label>
+            <label><input type="checkbox" name="output_circle"> 輸出圈圖結果</label>
+          </div>
+        </form>
+      </div>
+
+      <!-- 進度條 -->
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-text" id="progressText">系統正在努力工作中，請稍候：)</div>
+    </section>
+  </main>
+
+  <!-- 使用說明彈窗 -->
+  <div id="guideModal" class="modal-mask">
+    <div class="modal-card">
+      <h2>📘 鉤織圖辨識系統使用說明</h2>
+      <ol style="line-height:1.9; font-size:17px; color:#333; padding-left: 1.2em;">
+        <li><b>上傳圖片：</b> 點擊「選擇檔案」或「直接拍照上傳」，上傳一張清晰的鉤織圖。</li>
+        <li><b>選擇輸出：</b> 可勾選「輸出原圖」或「輸出圈圖結果」，系統會產生對應的視覺化結果。</li>
+        <li><b>自動辨識：</b> 系統會以訓練模型分析圖案，標出各針法符號與數量。</li>
+        <li><b>查看結果：</b> 完成後可將結果儲存至「我的結果」，日後隨時可以隨時查看。</li>
+        <li><b>我的結果：</b> 在「查看我的結果」中可重新命名、查看或刪除辨識紀錄。</li>
+        <li><b>針法教學：</b> 點擊後可以看到目前有收錄的針法教學，方便學習。</li>
+        <li><b>貼文牆：</b> 點擊後可以自己發布貼文或觀看其他人的貼文，還可以按讚、留言、追蹤。</li>
+        <li><b>個人介面：</b> 可以留下自己的紀錄，或一些心得，榮獲一些小粉絲。</li>
+      </ol>
+      <p style="margin-top:10px; color:#555; font-size:16px; line-height:1.6;">
+        💡 <b>小提醒：</b> 拍攝時保持光線充足，避免陰影或模糊；若符號較特別或手繪不清，辨識率可能略降。
+      </p>
+
+      <div class="modal-actions">
+        <button id="closeGuide" class="modal-close">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 關於本系統彈窗 -->
+  <div id="aboutModal" class="modal-mask">
+    <div class="modal-card">
+      <h2>ℹ️ 關於本系統</h2>
+      <p>
+        「鉤織圖辨識系統」是一款專為鉤織愛好者、設計師與學習者打造的智慧輔助工具。
+        透過整合人工智慧（AI）影像辨識技術與 YOLO 模型，本系統能自動解析鉤織圖樣中的各種針法符號，
+        並快速計算出各針法的數量，協助您節省手動分析的時間。
+      </p>
+      <p>
+        無論您是要記錄自己的作品、學習不同針法的使用，或是協助整理大量鉤織教材，
+        本系統都能成為您可靠的夥伴。系統亦提供「📜 查看我的結果」功能，讓使用者能隨時回顧過去的辨識結果。
+      </p>
+      <p>
+        目前支援的針法類型包括：鎖針、短針、中長針、長針、引拔針、爆米花針、棗形針、狗牙針等26種符號，
+        並持續擴充中。您只需上傳一張清晰的鉤織圖，即可獲得辨識結果與視覺化圖像加文字敘述。
+      </p>
+      <div class="modal-actions">
+        <button id="closeAbout" class="modal-close">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📷 相機彈窗 -->
+  <div id="cameraModal" class="modal-mask">
+    <div class="modal-card">
+      <h2>📷 直接拍照上傳</h2>
+      <!-- 相機外層容器（RWD 配合 CSS 切換手機/桌機滿版） -->
+      <div class="camera-wrap">
+        <div class="cam-frame">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <canvas id="cameraCanvas" style="display:none;"></canvas>
+        </div>
+        <div class="camera-controls">
+          <button id="captureBtn" class="primary">拍照</button>
+          <button id="retakeBtn" class="primary" style="display:none;">重拍</button>
+          <button id="uploadShotBtn" class="primary" style="display:none;">上傳辨識</button>
+          <button id="closeCamera" class="danger">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // ✅ Mobile menu control
+    // =========================
+    const menuBtn = document.getElementById("menuBtn");
+    const menuOverlay = document.getElementById("menuOverlay");
+    const mobileMenu = document.getElementById("mobileMenu");
+    const closeMenu = document.getElementById("closeMenu");
+
+    function openMenu(){
+      mobileMenu.classList.add("open");
+      menuOverlay.classList.add("show");
+      document.body.classList.add("menu-open");
+      menuBtn.setAttribute("aria-expanded", "true");
+      mobileMenu.setAttribute("aria-hidden", "false");
+    }
+
+    function closeMenuFn(){
+      mobileMenu.classList.remove("open");
+      menuOverlay.classList.remove("show");
+      document.body.classList.remove("menu-open");
+      menuBtn.setAttribute("aria-expanded", "false");
+      mobileMenu.setAttribute("aria-hidden", "true");
+    }
+
+    if(menuBtn){
+      menuBtn.onclick = openMenu;
+    }
+    if(closeMenu){
+      closeMenu.onclick = closeMenuFn;
+    }
+    if(menuOverlay){
+      menuOverlay.onclick = closeMenuFn;
+    }
+
+    // Drawer accordion
+    const drawerTutorialBtn = document.getElementById("drawerTutorialBtn");
+    const drawerTutorialList = document.getElementById("drawerTutorialList");
+    const drawerTutorialArrow = document.getElementById("drawerTutorialArrow");
+
+    if(drawerTutorialBtn){
+      drawerTutorialBtn.onclick = () => {
+        const open = drawerTutorialList.classList.toggle("open");
+        if(drawerTutorialArrow) drawerTutorialArrow.textContent = open ? "▴" : "▾";
+      };
+    }
+
+    // 點選抽屜連結後自動關閉
+    if(mobileMenu){
+      mobileMenu.addEventListener("click", (e) => {
+        const a = e.target.closest("a");
+        if(a && a.getAttribute("href")){
+          closeMenuFn();
+        }
+      });
+    }
+
+    // =========================
+    // ✅ 上傳進度條控制（保留原功能）
+    // =========================
+    document.getElementById("uploadForm").addEventListener("submit", function(e) {
+      e.preventDefault(); // 防止表單直接送出
+      const form = e.target;
+      const fileInput = document.getElementById("fileInput");
+
+      if (!fileInput.files.length) {
+        alert("請選擇圖片！");
+        return;
+      }
+
+      const formData = new FormData(form);
+
+      // 顯示進度條
+      const progressContainer = document.getElementById("progressContainer");
+      const progressBar = document.getElementById("progressBar");
+      const progressText = document.getElementById("progressText");
+      progressContainer.style.display = "block";
+      progressText.style.display = "block";
+      progressBar.style.width = "0%";
+
+      // 模擬進度條
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 10; // 模擬進度
+        if (progress > 90) progress = 90;
+        progressBar.style.width = progress + "%";
+      }, 200);
+
+      // 送出表單資料到後端 /predict
+      fetch(form.action, {
+        method: form.method,
+        body: formData
+      }).then(response => response.text()).then(html => {
+        clearInterval(interval);
+        progressBar.style.width = "100%";
+
+        setTimeout(() => {
+          document.open();
+          document.write(html);
+          document.close();
+        }, 300); // 延遲讓用戶看到100%
+      }).catch(err => {
+        alert("上傳失敗：" + err);
+      });
+    });
+
+    // =========================
+    // ✅ 使用說明與關於（保留原功能 + 支援手機抽屜按鈕）
+    // =========================
+    const guideBtn=document.getElementById("guideBtn");
+    const aboutBtn=document.getElementById("aboutBtn");
+    const guideBtnM=document.getElementById("guideBtnM");
+    const aboutBtnM=document.getElementById("aboutBtnM");
+
+    const guideModal=document.getElementById("guideModal");
+    const aboutModal=document.getElementById("aboutModal");
+
+    document.getElementById("closeGuide").onclick=()=>guideModal.style.display="none";
+    document.getElementById("closeAbout").onclick=()=>aboutModal.style.display="none";
+
+    if(guideBtn) guideBtn.onclick=()=>guideModal.style.display="flex";
+    if(aboutBtn) aboutBtn.onclick=()=>aboutModal.style.display="flex";
+
+    if(guideBtnM) guideBtnM.onclick=()=>{ closeMenuFn(); guideModal.style.display="flex"; };
+    if(aboutBtnM) aboutBtnM.onclick=()=>{ closeMenuFn(); aboutModal.style.display="flex"; };
+
+    guideModal.onclick=(e)=>{if(e.target===guideModal)guideModal.style.display="none";};
+    aboutModal.onclick=(e)=>{if(e.target===aboutModal)aboutModal.style.display="none";};
+
+    // =========================
+    // ✅ 相機控制（保留原功能）
+    // =========================
+    const cameraBtn=document.getElementById("cameraBtn"),
+          cameraModal=document.getElementById("cameraModal"),
+          videoEl=document.getElementById("cameraVideo"),
+          canvasEl=document.getElementById("cameraCanvas"),
+          captureBtn=document.getElementById("captureBtn"),
+          retakeBtn=document.getElementById("retakeBtn"),
+          uploadShotBtn=document.getElementById("uploadShotBtn"),
+          closeCamera=document.getElementById("closeCamera");
+    let mediaStream=null,capturedBlob=null;
+
+    function stopStream(){if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop());mediaStream=null;}}
+
+    async function startCamera(){
+      try{
+        mediaStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+        videoEl.srcObject=mediaStream;await videoEl.play();
+        videoEl.style.display="block";canvasEl.style.display="none";
+        retakeBtn.style.display="none";uploadShotBtn.style.display="none";capturedBlob=null;
+      }catch{alert("無法開啟相機，請確認權限已允許");}
+    }
+
+    cameraBtn.onclick=()=>{cameraModal.style.display="flex";document.body.classList.add('modal-open');setTimeout(startCamera,100);};
+    closeCamera.onclick=()=>{stopStream();cameraModal.style.display="none";document.body.classList.remove('modal-open');};
+    cameraModal.onclick=(e)=>{if(e.target===cameraModal){stopStream();cameraModal.style.display="none";document.body.classList.remove('modal-open');}}
+
+    captureBtn.onclick=()=>{
+      if(!mediaStream)return;
+      const w=videoEl.videoWidth||1280,h=videoEl.videoHeight||720;
+      canvasEl.width=w;canvasEl.height=h;
+      canvasEl.getContext("2d").drawImage(videoEl,0,0,w,h);
+      canvasEl.toBlob(blob=>{capturedBlob=blob;videoEl.style.display="none";canvasEl.style.display="block";
+        retakeBtn.style.display="inline-block";uploadShotBtn.style.display="inline-block";stopStream();
+      },"image/jpeg",0.92);
+    };
+
+    retakeBtn.onclick=()=>startCamera();
+    uploadShotBtn.onclick = async () => {
+      if (!capturedBlob) { alert("請先拍照"); return; }
+
+      const fd = new FormData();
+      fd.append("file", new File([capturedBlob], "camera.jpg", { type: "image/jpeg" }));
+
+      // 把兩個勾選也一併送給後端
+      const chkOrig  = document.querySelector('input[name="output_original"]');
+      const chkCircle = document.querySelector('input[name="output_circle"]');
+      if (chkOrig && chkOrig.checked)   fd.append('output_original', '1');
+      if (chkCircle && chkCircle.checked) fd.append('output_circle',  '1');
+
+      // 送到與一般上傳相同的 /predict
+      const res = await fetch("/predict", { method: "POST", body: fd });
+      const html = await res.text();
+      document.open(); document.write(html); document.close();
+    };
+	
+	// ===== Desktop 使用者下拉（點擊才展開）=====
+	(function(){
+	  const userMenu = document.getElementById("userMenu");
+	  const btn = document.getElementById("userMenuBtn");
+	  if(!userMenu || !btn) return;
+
+	  function closeMenu(){
+		userMenu.classList.remove("open");
+		btn.setAttribute("aria-expanded", "false");
+	  }
+	  function toggleMenu(){
+		const open = userMenu.classList.toggle("open");
+		btn.setAttribute("aria-expanded", open ? "true" : "false");
+	  }
+
+	  btn.addEventListener("click", (e)=>{
+		e.preventDefault();
+		e.stopPropagation();
+		toggleMenu();
+	  });
+
+	  // 點外面關閉
+	  document.addEventListener("click", closeMenu);
+
+	  // 點選單內不關閉（避免點擊空白就收起）
+	  userMenu.addEventListener("click", (e)=>e.stopPropagation());
+
+	  // ESC 關閉
+	  document.addEventListener("keydown", (e)=>{
+		if(e.key === "Escape") closeMenu();
+	  });
+	})();
+
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>個人介面</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* 外框與共用樣式 */
+  html, body {
+    height: 100%;
+    background: transparent; /* 背景交由偽元素處理 */
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+    color: #333;
+    font-size: 18px;
+  }
+
+  /* ✅ 用偽元素鋪滿整個畫面當背景層 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(rgba(255,255,255,.8), rgba(255,255,255,.8)),
+      url("{{ url_for('static', filename='img/crochet-bg.jpg') }}")
+      center / cover no-repeat;
+  }
+  .wrap{
+    max-width:1000px;
+    margin:0 auto;
+    padding:0 16px;
+    box-sizing:border-box;
+  }
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  a.link{color:#2563eb;text-decoration:none}
+  .flash{background:#fde68a;color:#92400e;padding:10px;border-radius:8px;margin:10px 0}
+
+  /* 版面：左頭像、右資料 */
+  .grid{
+    display:grid;
+    grid-template-columns: 300px minmax(0,1fr);
+    gap:20px;                
+    align-items:start;
+  }
+
+  /* 卡片通用樣式 + 防外凸 */
+  .card{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:18px;
+    box-sizing:border-box;
+    overflow:hidden;          /* 防止內容把卡片撐爆 */
+  }
+  .card *{ min-width:0; }
+
+  /* 頭像 */
+  .avatar{
+    width:180px;height:180px;border-radius:50%;
+    object-fit:cover;background:#f3f4f6;border:1px solid #ddd;
+    display:block;margin:0 auto;
+  }
+
+  /* 表單元件 */
+  .row{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+  input,textarea{
+    padding:10px 12px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+  }
+  button{background:#967AA1;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+  .meta{font-size:14px;color:#666;margin-top:6px}
+
+  /* 檔案選擇列可換行 */
+  .avatar-form .file-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
+  }
+  .avatar-form input[type="file"]{
+    flex:1 1 260px;
+    max-width:100%;
+  }
+
+  /* Bio */
+  #bioTextarea{
+    width:100%;
+    max-width:100%;
+    resize:vertical;
+    min-height:90px;
+  }
+
+  /* 手機 RWD：改單欄 */
+  @media (max-width: 900px){
+    .grid{ grid-template-columns: 1fr; }
+  }
+
+  /* Cropper 圓形預覽 */
+  .cropper-view-box,
+  .cropper-face{ border-radius:50%; }
+
+  /* 通用彈窗 */
+  .modal-mask{
+    position:fixed; inset:0; background:rgba(0,0,0,.55);
+    display:flex; justify-content:center; align-items:center;
+    z-index:9999; padding:16px; box-sizing:border-box;
+  }
+  .modal-card{
+    background:#fff; border-radius:12px; padding:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+    max-height: 92vh;
+    overflow: auto;           /* iOS/Android 都能在卡片內捲動 */	
+  }
+  .modal-close{ padding:8px 14px; border:none; border-radius:8px; color:#fff; cursor:pointer; }
+
+  /* ===== [ADD] 粉絲 / 追蹤中 膠囊 ===== */
+  .stat-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:flex-end;   /* 右上角對齊 */
+    margin:-6px 0 6px;
+  }
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    border:1px solid #e5e7eb;
+    padding:6px 10px;
+    border-radius:999px;
+    background:#fafafa;
+    text-decoration:none;
+    color:#333;
+    font-size:14px;
+    transition:.15s;
+  }
+  .chip:hover{ background:#f3f4f6; border-color:#d1d5db; }
+  .chip .dot{
+    width:8px; height:8px; border-radius:50%;
+    background:#967AA1;
+  }
+  .chip .badge{
+    font-weight:700;
+    min-width:1.5em;
+    text-align:right;
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 頂部導覽：回首頁 / 修改密碼 -->
+  <div class="topbar">
+    <h1 style="margin:0;">個人介面</h1>
+    <div>
+      <a class="link" href="{{ url_for('index') }}">回首頁</a>
+      &nbsp;|&nbsp;
+      <a class="link" href="{{ url_for('change_password') }}">修改密碼</a>
+      &nbsp;|&nbsp;
+      <a class="link" href="{{ url_for('my_likes') }}">我按過的讚</a>
+    </div>
+  </div>
+
+  <!-- Flash 訊息 -->
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for m in messages %}
+        <div class="flash">{{ m }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="grid">
+    <!-- 左側：頭像卡片 -->
+    <div class="card">
+      <h2>頭像</h2>
+
+      <!-- 顯示目前頭像 -->
+      <img id="avatarImg"
+           class="avatar"
+           src="{{ url_for('static', filename=user['avatar_path']) if user['avatar_path'] else url_for('static', filename='img/default-avatar.png') }}"
+           alt="avatar">
+
+      <!-- 檔案選擇列 -->
+      <div class="avatar-form file-row" style="margin-top:12px">
+        <input id="avatarFile" type="file" accept="image/*" style="display:none" />
+        <button id="avatarUploadBtn">上傳新頭像</button>
+      </div>
+    </div>
+
+    <!-- 右側：基本資料卡片 -->
+    <div class="card">
+      <!-- ===== [ADD] 右上角放「粉絲 / 追蹤中」膠囊 ===== -->
+      <div class="stat-row">
+        <a class="chip" href="{{ url_for('my_followers_page') }}">
+          <span class="dot" aria-hidden="true"></span>
+          <span>粉絲</span>
+          <span class="badge">{{ follower_cnt }}</span>
+        </a>
+        <a class="chip" href="{{ url_for('my_following_page') }}">
+          <span class="dot" aria-hidden="true"></span>
+          <span>追蹤中</span>
+          <span class="badge">{{ following_cnt }}</span>
+        </a>
+      </div>
+
+      <h2 style="margin:0 0 12px;">個人資料</h2>
+      <div class="meta" style="margin-bottom:6px;">Email：{{ user.email }}</div>
+      <div class="meta" style="margin-bottom:6px;">加入時間：{{ user.created_at }}</div>
+      <div class="meta" style="margin-bottom:12px;">我的結果數量：{{ total_results }}</div>
+
+      <!-- 更新名稱與自我介紹 -->
+      <form method="post" action="{{ url_for('profile_update') }}">
+        <div class="row">
+          <label>用戶名稱</label>
+          <input type="text" name="name" value="{{ user.name }}" required>
+        </div>
+        <div class="row">
+          <label>自我介紹</label>
+          <textarea id="bioTextarea" name="bio" rows="4" placeholder="寫點關於你自己吧～">{{ user.bio or '' }}</textarea>
+        </div>
+        <button type="submit">更新個人資料</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 我發布過的貼文 -->
+  <div class="card" style="margin-top:12px;">
+    <h3 style="margin-top:0;">📝 我發布過的貼文</h3>
+    {% if my_posts %}
+      {% for p in my_posts %}
+        <div id="post-{{ p.id }}" style="border-top:1px solid #eee; padding-top:10px; margin-top:10px">
+          {% if p.content %}
+            <div style="white-space:pre-wrap; line-height:1.6">{{ p.content }}</div>
+          {% endif %}
+          {% if p.image_path %}
+            <img
+              src="{{ url_for('static', filename=p.image_path) }}"
+              alt=""
+              style="width:100%;max-width:680px;border-radius:10px;margin-top:8px"
+            >
+          {% endif %}
+          <div style="color:#666; font-size:14px; margin-top:6px;">
+            發布時間：{{ p.created_at }}
+            · <a href="{{ url_for('post_detail', pid=p.id) }}" style="text-decoration:none; color:#2563eb;">前往貼文</a>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">你還沒有發布過貼文。</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Cropper.js（CDN） -->
+<link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
+<script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+<!-- (A) 裁切頭像用的 Modal -->
+<div id="avatarCropperModal" class="modal-mask" style="display:none">
+  <div class="modal-card" style="max-width:1000px;">
+    <h3 style="margin-top:0">裁切頭像</h3>
+    <div style="display:flex; gap:20px; flex-wrap:wrap">
+      <div style="flex:1 1 560px; min-width:280px;">
+        <img id="cropperSource" style="max-width:100%; display:block;" />
+      </div>
+      <div style="flex:0 0 300px;">
+        <div id="cropperPreview"
+             style="width:260px;height:260px;border-radius:50%;
+                    overflow:hidden;background:#f3f4f6;border:1px solid #ddd;"></div>
+        <div class="meta" style="margin-top:8px;">圓形區域為最終頭像預覽</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+      <button id="cropperRotateL">↶ 旋轉</button>
+      <button id="cropperRotateR">↷ 旋轉</button>
+      <button id="cropperZoomIn">＋ 放大</button>
+      <button id="cropperZoomOut">－ 縮小</button>
+      <div style="flex:1"></div>
+      <button id="cropperCancel" class="danger">取消</button>
+      <button id="cropperConfirm" class="primary">裁切並上傳</button>
+    </div>
+  </div>
+</div>
+
+<!-- 原圖預覽彈窗 -->
+<div id="avatarPreviewModal" class="modal-mask" style="display:none">
+  <div class="modal-card" style="max-width:900px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0"></h3>
+      <button id="avatarPreviewClose">關閉</button>
+    </div>
+    <img id="avatarPreviewImg" style="max-width:100%; display:block; margin-top:10px;" />
+  </div>
+</div>
+
+<script>
+(function(){
+  // ===== DOM 參照 =====
+  const avatarImg       = document.getElementById('avatarImg');
+  const fileInput       = document.getElementById('avatarFile');
+  const uploadBtn       = document.getElementById('avatarUploadBtn');
+
+  const cropperModal    = document.getElementById('avatarCropperModal');
+  const cropperSource   = document.getElementById('cropperSource');
+  const cropperPreview  = document.getElementById('cropperPreview');
+
+  const btnRotateL      = document.getElementById('cropperRotateL');
+  const btnRotateR      = document.getElementById('cropperRotateR');
+  const btnZoomIn       = document.getElementById('cropperZoomIn');
+  const btnZoomOut      = document.getElementById('cropperZoomOut');
+  const btnCancel       = document.getElementById('cropperCancel');
+  const btnConfirm      = document.getElementById('cropperConfirm');
+
+  const previewModal    = document.getElementById('avatarPreviewModal');
+  const previewImg      = document.getElementById('avatarPreviewImg');
+  const previewClose    = document.getElementById('avatarPreviewClose');
+
+  let cropper = null;
+  let objectURL = null;
+
+  // 1) 點「上傳新頭像」→ 觸發選檔
+  uploadBtn?.addEventListener('click', () => fileInput?.click());
+
+  // 2) 選檔後開裁切視窗
+  fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+
+    // 建立暫時 URL 顯示原圖
+    if(objectURL) URL.revokeObjectURL(objectURL);
+    objectURL = URL.createObjectURL(file);
+    cropperSource.src = objectURL;
+
+    // 開啟 modal
+    cropperModal.style.display = 'flex';
+
+    // 等圖片載入後再啟動 Cropper
+    cropperSource.onload = () => {
+      cropper?.destroy?.();
+      cropper = new Cropper(cropperSource, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 1,
+        guides: false,
+        background: true,
+        minCropBoxWidth: 120,
+        minCropBoxHeight: 120,
+        preview: cropperPreview,
+      });
+    };
+  });
+
+  // 3) 裁切工具列
+  btnRotateL?.addEventListener('click', () => cropper?.rotate(-90));
+  btnRotateR?.addEventListener('click', () => cropper?.rotate(90));
+  btnZoomIn ?.addEventListener('click', () => cropper?.zoom(0.1));
+  btnZoomOut?.addEventListener('click', () => cropper?.zoom(-0.1));
+  btnCancel ?.addEventListener('click', () => closeCropper());
+
+  function closeCropper(){
+    cropper?.destroy?.();
+    cropper = null;
+    cropperModal.style.display = 'none';
+    if(objectURL){ URL.revokeObjectURL(objectURL); objectURL = null; }
+    fileInput.value = '';
+  }
+
+  // 4) 確認裁切並上傳
+  btnConfirm?.addEventListener('click', async () => {
+    if(!cropper) return;
+
+    // 取得裁切後方形圖（512x512）並套圓形遮罩輸出成 PNG
+    const squareCanvas = cropper.getCroppedCanvas({ width: 512, height: 512 });
+    const roundCanvas  = document.createElement('canvas');
+    roundCanvas.width  = 512;
+    roundCanvas.height = 512;
+    const ctx = roundCanvas.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(256, 256, 256, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(squareCanvas, 0, 0, 512, 512);
+
+    roundCanvas.toBlob(async (blob) => {
+      if(!blob) return alert('圖片處理失敗，請重試');
+      const formData = new FormData();
+      formData.append('avatar', new File([blob], 'avatar.png', { type: 'image/png' }));
+
+      // 後端：/profile/avatar
+      const res = await fetch('/profile/avatar', { method: 'POST', body: formData });
+      if(!res.ok){
+        alert('上傳失敗');
+        return;
+      }
+      const data = await res.json();
+      if(data.ok){
+        const url = data.url + (data.url.includes('?') ? '&' : '?') + 't=' + Date.now();
+        avatarImg.src = url;
+        closeCropper();
+      }else{
+        alert(data.msg || '上傳失敗');
+      }
+    }, 'image/png', 0.95);
+  });
+
+  // 5) 點頭像 → 看原圖
+  avatarImg?.addEventListener('click', () => {
+    previewImg.src = avatarImg.src.replace(/\?t=\d+$/, '');
+    previewModal.style.display = 'flex';
+  });
+  previewClose?.addEventListener('click', () => previewModal.style.display = 'none');
+  previewModal?.addEventListener('click', (e) => {
+    if(e.target === previewModal) previewModal.style.display = 'none';
+  });
+})();
+</script>
+
+</body>
+</html>

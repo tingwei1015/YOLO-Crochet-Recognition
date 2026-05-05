@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>我的資料</title>
+<style>
+  html, body {
+    height: 100%;
+    background: transparent; /* 背景交由偽元素處理 */
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+    color: #333;
+    font-size: 18px;
+  }
+
+  /* ✅ 用偽元素鋪滿整個畫面當背景層 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(rgba(255,255,255,.8), rgba(255,255,255,.8)),
+      url("{{ url_for('static', filename='img/crochet-bg.jpg') }}")
+      center / cover no-repeat;
+  }
+/* 標題樣式 */
+h1 {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+/* 每一筆紀錄區塊樣式 */
+.record {
+  background: #fff;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 紀錄內文字樣式（例如時間） */
+.record span {
+  font-size: 18px;
+}
+
+/* 按鈕區塊樣式 */
+.actions button {
+  margin-left: 10px;
+  padding: 6px 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* 查看按鈕 */
+.view {
+  background: #4CAF50;
+  color: white;
+}
+
+/* 刪除按鈕 */
+.delete {
+  background: #f44336;
+  color: white;
+}
+
+/* 頁面上方功能列（全部刪除 / 返回首頁） */
+.top-actions {
+  text-align: right;
+  margin-bottom: 15px;
+}
+
+/* 全部刪除按鈕樣式 */
+.top-actions button {
+  padding: 8px 16px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  background: #ff9800;
+  color: white;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<h1>我的資料</h1>
+<!-- 頂部功能區：全部刪除 + 返回首頁 -->
+<div class="top-actions">
+  <button onclick="deleteAll()">🗑 全部刪除</button>
+  <a href="/" style="margin-left:15px;text-decoration:none;font-size:16px;">🏠 返回首頁</a>
+</div>
+
+<!-- 使用 Jinja2 模板語法動態產生歷史紀錄清單 -->
+{% for h in history %}
+<div class="record" data-id="{{ h.id }}">
+  <!-- 顯示紀錄名稱（預設為時間），可直接編輯修改 -->
+  <span contenteditable="true" onblur="renameRecord({{ h.id }}, this.innerText)">{{ h.timestamp }}</span>
+  <!-- 功能按鈕區：查看、刪除 -->
+  <div class="actions">
+    <!-- 查看結果：跳轉至 /history/view/<id> -->
+    <button class="view" onclick="location.href='/history/view/{{ h.id }}'">查看</button>
+    <button class="delete" onclick="deleteRecord({{ h.id }})">刪除</button>
+  </div>
+</div>
+{% else %}
+<p style="text-align:center;font-size:18px;">目前沒有我的資料。</p>
+{% endfor %}
+
+<script>
+function deleteRecord(id){
+    if(!confirm("確定要刪除此資料嗎？")) return;
+    fetch("/history/delete/"+id,{method:"POST"}).then(res=>res.json()).then(()=>location.reload());
+}
+function deleteAll(){
+    if(!confirm("確定要刪除全部資料？")) return;
+    fetch("/history/delete_all",{method:"POST"}).then(()=>location.reload());
+}
+function renameRecord(id,newName){
+    fetch("/history/rename/"+id,{
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({new_name:newName}) // 將新名稱以 JSON 格式送出
+    });
+}
+</script>
+</body>
+</html>
